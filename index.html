@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Todo mini</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div class="todo">
+      <h1>Задачи</h1>
+      <div class="add">
+        <input id="text" placeholder="Новая задача..." />
+        <button id="save">Добавить</button>
+      </div>
+      <div id="list"></div>
+    </div>
+
+    <script>
+      const textEl = document.getElementById("text");
+      const listEl = document.getElementById("list");
+
+      async function load() {
+        const todos = await fetch("/api/todos").then((response) => response.json());
+        listEl.innerHTML =
+          "<ul>" +
+          todos
+            .map(
+              (todo) =>
+                `<li><span>${todo.text}</span><button data-id="${todo.id}">×</button></li>`,
+            )
+            .join("") +
+          "</ul>";
+      }
+
+      listEl.onclick = (event) => {
+        const id = event.target.dataset?.id;
+        if (id)
+          fetch(`/api/todos/${id}`, { method: "DELETE" })
+            .then(() => load())
+            .catch(console.error);
+      };
+
+      document.getElementById("save").onclick = async () => {
+        const text = textEl.value.trim();
+        if (!text) return;
+        const response = await fetch("/api/todos", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ text }),
+        });
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          alert("Ошибка: " + (errorData.error || response.statusText));
+          return;
+        }
+        textEl.value = "";
+        alert("Сохранено!");
+        load();
+      };
+
+      load().catch(console.error);
+    </script>
+  </body>
+</html>
